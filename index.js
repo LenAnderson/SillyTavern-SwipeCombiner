@@ -1,8 +1,54 @@
-import { chat, messageFormatting } from '../../../../script.js';
+import { chat, messageFormatting, saveSettingsDebounced } from '../../../../script.js';
 import { hideChatMessage } from '../../../chats.js';
-import { POPUP_TYPE, Popup, callGenericPopup } from '../../../popup.js';
+import { extension_settings, renderExtensionTemplate } from '../../../extensions.js';
+import { POPUP_TYPE, Popup } from '../../../popup.js';
 import { executeSlashCommands, registerSlashCommand, sendNarratorMessage } from '../../../slash-commands.js';
 import { getSortableDelay } from '../../../utils.js';
+
+
+
+
+class Preset {
+    static from(props) {
+        return Object.assign(new Preset(), props);
+    }
+
+    /**@type {String}*/ name = 'New Preset';
+    /**@type {String}*/ prompt = '{{segments}}';
+    /**@type {String}*/ segmentTemplate = '{{segment}}';
+    /**@type {String}*/ segmentJoin = '\n';
+}
+
+const defaultPreset = new Preset();
+defaultPreset.name = 'Default Preset';
+defaultPreset.prompt = `{{segments}}
+Combine the above segments into a cohesive part of the story. Check for logical flow, coherence, and organization when adding text between the sections or around them to seamlessly fit the segments together and coherently integrate the final new text into the existing narrative.`;
+defaultPreset.segmentTemplate = '<segment>{{segment}}</segment>';
+defaultPreset.segmentJoin = '\n';
+
+class Settings {
+    static from(props) {
+        props.presetList = props.presetList?.map(it=>Preset.from(it)) ?? [Preset.from(defaultPreset)];
+        const instance = Object.assign(new Settings(), props);
+        return instance;
+    }
+
+    /**@type {Preset[]}*/ presetList = [Preset.from(defaultPreset)];
+    /**@type {String}*/ presetName = 'Default Preset';
+    get preset() {
+        return this.presetList.find(it=>it.name == this.presetName) ?? Preset.from(defaultPreset);
+    }
+
+    save() {
+        saveSettingsDebounced();
+    }
+}
+/**@type {Settings}*/
+const settings = Settings.from(extension_settings.swipeCombiner ?? {});
+extension_settings.swipeCombiner = settings;
+
+
+
 
 const segmenter = new Intl.Segmenter('en', { granularity:'sentence' });
 class Snippet {
@@ -170,7 +216,10 @@ const showSwipeCombiner = async(mesId) => {
     console.log(popupResult, snippets);
     if (popupResult && snippets.length > 0) {
         hideChatMessage(mesId, $(document.querySelector(`#chat [mesid="${mesId}"]`)));
-        sendNarratorMessage({}, [...snippets.map(it=>`<segment>${it.segment}</segment>`), 'Combine the above segments into a cohesive part of the story. Check for logical flow, coherence, and organization when adding text between the sections or around them to seamlessly fit the segments together and coherently integrate the final new text into the existing narrative.'].join('\n'));
+        sendNarratorMessage({}, settings.preset.prompt.replace(
+            /{{segments}}/g,
+            snippets.map(it=>settings.preset.segmentTemplate.replace(/{{segment}}/g, it.segment)).join(settings.preset.segmentJoin),
+        ));
         await executeSlashCommands('/trigger');
     }
 };
@@ -185,3 +234,124 @@ registerSlashCommand('swipecombiner',
     true,
     true,
 );
+
+
+
+
+const initSettings = async()=>{
+    const url = '/scripts/extensions/third-party/SillyTavern-SwipeCombiner/settings.html';
+    const response = await fetch(url);
+    if (!response.ok) {
+        return console.warn('failed to fetch template:', url);
+    }
+    const settingsTpl = document.createRange().createContextualFragment(await response.text()).querySelector('#stsc--settings');
+    /**@type {HTMLElement} */
+    // @ts-ignore
+    const dom = settingsTpl.cloneNode(true);
+    document.querySelector('#extensions_settings').append(dom);
+
+    dom.querySelector('#stsc--createPreset').addEventListener('click', ()=>{
+        const preset = new Preset();
+        settings.presetList.push(preset);
+        addOption(preset);
+        presetName.value = preset.name;
+        presetName.dispatchEvent(new Event('change', { bubbles:true }));
+        settings.save();
+    });
+
+    dom.querySelector('#stsc--deletePreset').addEventListener('click', ()=>{
+        settings.presetList.splice(settings.presetList.indexOf(settings.preset), 1);
+        presetName.selectedOptions[0].remove();
+        if (presetName.children.length > 0) {
+            presetName.value = presetName.children[0].value;
+            presetName.dispatchEvent(new Event('change', { bubbles:true }));
+        } else {
+            addOption(settings.preset);
+        }
+        settings.save();
+    });
+
+    /**
+     *
+     * @param {Preset} preset
+     */
+    const addOption = (preset)=>{
+        const opt = document.createElement('option'); {
+            opt.value = preset.name;
+            opt.text = preset.name;
+            insertOption(opt);
+        }
+    };
+    const insertOption = (opt)=>{
+        const before = Array.from(presetName.children).find(it=>it != opt && it.value.toLowerCase() > opt.value.toLowerCase());
+        if (before) before.insertAdjacentElement('beforebegin', opt);
+        else presetName.append(opt);
+    };
+
+    /**@type {HTMLSelectElement} */
+    const presetName = dom.querySelector('#stsc--presetName');
+    settings.presetList.forEach(preset=>{
+        addOption(preset);
+    });
+    presetName.value = settings.presetName;
+    presetName.addEventListener('change', () => {
+        settings.presetName = presetName.value;
+        settings.save();
+        name.value = settings.preset.name;
+        prompt.value = settings.preset.prompt;
+        segmentTemplate.value = settings.preset.segmentTemplate;
+        segmentJoin.value = settings.preset.segmentJoin;
+        updatePreview();
+    });
+
+    /**@type {HTMLSelectElement} */
+    const name = dom.querySelector('#stsc--name');
+    name.value = settings.preset.name;
+    name.addEventListener('input', () => {
+        const preset = settings.preset;
+        preset.name = name.value;
+        settings.presetName = name.value;
+        presetName.selectedOptions[0].value = name.value;
+        presetName.selectedOptions[0].textContent = name.value;
+        insertOption(presetName.selectedOptions[0]);
+        settings.save();
+    });
+
+    /**@type {HTMLSelectElement} */
+    const prompt = dom.querySelector('#stsc--prompt');
+    prompt.value = settings.preset.prompt;
+    prompt.addEventListener('input', () => {
+        settings.preset.prompt = prompt.value;
+        settings.save();
+        updatePreview();
+    });
+
+    /**@type {HTMLSelectElement} */
+    const segmentTemplate = dom.querySelector('#stsc--segmentTemplate');
+    segmentTemplate.value = settings.preset.segmentTemplate;
+    segmentTemplate.addEventListener('input', () => {
+        settings.preset.segmentTemplate = segmentTemplate.value;
+        settings.save();
+        updatePreview();
+    });
+
+    /**@type {HTMLSelectElement} */
+    const segmentJoin = dom.querySelector('#stsc--segmentJoin');
+    segmentJoin.value = settings.preset.segmentJoin;
+    segmentJoin.addEventListener('input', () => {
+        settings.preset.segmentJoin = segmentJoin.value;
+        settings.save();
+        updatePreview();
+    });
+
+    /**@type {HTMLSelectElement} */
+    const preview = dom.querySelector('#stsc--preview');
+    const updatePreview = ()=>{
+        preview.textContent = settings.preset.prompt.replace(
+            /{{segments}}/g,
+            ['foo', 'bar'].map(it=>settings.preset.segmentTemplate.replace(/{{segment}}/g, it)).join(settings.preset.segmentJoin),
+        );
+    };
+    updatePreview();
+};
+initSettings();

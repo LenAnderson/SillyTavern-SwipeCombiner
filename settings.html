@@ -1,0 +1,48 @@
+<div id="stsc--settings">
+	<div class="inline-drawer">
+		<div class="inline-drawer-toggle inline-drawer-header">
+			<b>Swipe Combiner</b>
+			<div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+		</div>
+		<div class="inline-drawer-content" style="font-size:small;">
+			<div class="flex-container flex-row">
+				<label class="checkbox_label">
+					Preset
+					<select id="stsc--presetName" class="text_pole"></select>
+				</label>
+				<div id="stsc--createPreset" class="menu_button fa-solid fa-plus" title="Create new preset"></div>
+				<div id="stsc--deletePreset" class="menu_button fa-solid fa-trash-can redWarningBG" title="Delete preset"></div>
+			</div>
+			<div class="flex-container">
+				<label>
+					Preset Name
+					<input id="stsc--name" class="text_pole">
+				</label>
+			</div>
+			<div class="flex-container">
+				<label>
+					Prompt <small>(<code>{{segments}}</code> will be replaced with the list of segments)</small>
+					<textarea id="stsc--prompt" class="text_pole" rows="6"></textarea>
+				</label>
+			</div>
+			<div class="flex-container">
+				<label>
+					Segment Template <small>(<code>{{segment}}</code> will be replaced with the segment's text)</small>
+					<textarea id="stsc--segmentTemplate" class="text_pole"></textarea>
+				</label>
+			</div>
+			<div class="flex-container">
+				<label>
+					Segment Separator <small>(text to put between segments)</small>
+					<textarea id="stsc--segmentJoin" class="text_pole"></textarea>
+				</label>
+			</div>
+			<div class="flex-container">
+				<label>
+					Preview
+					<div id="stsc--preview" class="text_pole"></div>
+				</label>
+			</div>
+		</div>
+	</div>
+</div>
