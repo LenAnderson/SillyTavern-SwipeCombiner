@@ -1,33 +1,14 @@
-import { callPopup, chat, messageFormatting, sendSystemMessage } from '../../../../script.js';
+import { chat, messageFormatting } from '../../../../script.js';
 import { hideChatMessage } from '../../../chats.js';
+import { POPUP_TYPE, Popup, callGenericPopup } from '../../../popup.js';
 import { executeSlashCommands, registerSlashCommand, sendNarratorMessage } from '../../../slash-commands.js';
 import { getSortableDelay } from '../../../utils.js';
 
 const segmenter = new Intl.Segmenter('en', { granularity:'sentence' });
-const getSegments = (root, span) => {
-    const children = [];
-    const nodes = document.evaluate('*', root, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE);
-    for (let i = 0; i < nodes.snapshotLength; i++) {
-        const node = nodes.snapshotItem(i);
-        if (node instanceof HTMLBRElement) {
-            // skip
-        } else if (node instanceof Text) {
-            // text node
-            const segments = Array.from(segmenter.segment(node.textContent)).map(it=>it.segment);
-            const finalSegment = segments.pop();
-            for (const segment of segments) {
-                //x
-            }
-        } else if (node instanceof HTMLElement) {
-            // nested element -> recurse
-        } else {
-            // WTF?!
-        }
-    }
-};
 class Snippet {
     /**@type {Number}*/ swipe;
     /**@type {Number}*/ index;
+    /**@type {Number}*/ relativeIndex;
     /**@type {String}*/ segment;
     /**@type {HTMLElement}*/ dom;
 }
@@ -62,73 +43,101 @@ const showSwipeCombiner = async(mesId) => {
                     const tab = document.createElement('div'); {
                         tab.classList.add('stsc--tab');
                         tab.textContent = swipeIdx.toString();
+                        tab.title = `Swipe ${swipeIdx}`;
                         tab.addEventListener('click', ()=>{
                             Array.from(head.querySelectorAll('.stsc--active')).forEach(it=>it.classList.remove('stsc--active'));
                             tab.classList.add('stsc--active');
-                            mesHolder.innerHTML = messageFormatting(
-                                segments[swipeIdx].map((it,idx)=>{
-                                    const span = document.createElement('span'); {
-                                        span.textContent = it;
-                                        span.setAttribute('data-stsc--segment', idx.toString());
-                                    }
-                                    return span.outerHTML;
-                                }).join(''),
-                                null,
-                                false,
-                                false,
-                                null,
-                            );
-                            Array.from(mesHolder.querySelectorAll('[data-stsc--segment]')).forEach((span,segmentIdx)=>{
-                                span.addEventListener('click', ()=>{
-                                    const snippet = new Snippet();
-                                    snippet.swipe = swipeIdx;
-                                    snippet.index = segmentIdx;
-                                    snippet.segment = segments[swipeIdx][segmentIdx];
-                                    const dupe = snippets.find(it=>it.swipe == swipeIdx && it.index == segmentIdx);
-                                    if (dupe) {
-                                        dupe.dom.remove();
-                                        snippets.splice(snippets.indexOf(dupe), 1);
-                                        return;
-                                    }
-                                    const before = snippets.find(it=>it.index > segmentIdx);
-                                    if (before) {
-                                        snippets.splice(snippets.indexOf(before), 0, snippet);
-                                    } else {
-                                        snippets.push(snippet);
-                                    }
-                                    const outer = document.createElement('div'); {
-                                        snippet.dom = outer;
-                                        outer.classList.add('stsc--snippet');
-                                        outer.classList.add('mes');
-                                        outer.setAttribute('data-stsc--swipe', swipeIdx.toString());
-                                        outer.setAttribute('data-stsc--segment', segmentIdx.toString());
-                                        outer.title = 'Drag to reorder\nRight-click to remove';
-                                        outer.addEventListener('contextmenu', (evt)=>{
-                                            evt.preventDefault();
-                                            evt.stopPropagation();
-                                            outer.remove();
-                                            snippets.splice(snippets.findIndex(it=>it.swipe == swipeIdx && it.index == segmentIdx), 1);
-                                        });
-                                        const inner = document.createElement('div'); {
-                                            inner.classList.add('mes_text');
-                                            if (span.closest('q')) {
-                                                const q = document.createElement('q'); {
-                                                    q.append(span.cloneNode(true));
-                                                    inner.append(q);
-                                                }
-                                            } else {
-                                                inner.append(span.cloneNode(true));
-                                            }
-                                            outer.append(inner);
+                            if (!tab.tabContent) {
+                                const tabContent = document.createElement('div'); {
+                                    tabContent.classList.add('mes_text');
+                                }
+                                tab.tabContent = tabContent;
+                                tabContent.innerHTML = messageFormatting(
+                                    segments[swipeIdx].map((it,idx)=>{
+                                        const span = document.createElement('span'); {
+                                            span.textContent = it;
+                                            span.title = 'Click to add / remove snippet';
+                                            span.setAttribute('data-stsc--segment', idx.toString());
                                         }
+                                        return span.outerHTML;
+                                    }).join(''),
+                                    null,
+                                    false,
+                                    false,
+                                    null,
+                                );
+                                Array.from(tabContent.querySelectorAll('[data-stsc--segment]')).forEach((span,segmentIdx)=>{
+                                    if (snippets.find(it=>it.swipe == swipeIdx && it.index == segmentIdx)) {
+                                        span.classList.add('stsc--selected');
                                     }
-                                    if (before) {
-                                        before.dom.insertAdjacentElement('beforebegin', outer);
-                                    } else {
-                                        keepers.append(outer);
-                                    }
+                                    span.addEventListener('click', ()=>{
+                                        const snippet = new Snippet();
+                                        snippet.swipe = swipeIdx;
+                                        snippet.index = segmentIdx;
+                                        snippet.relativeIndex = segmentIdx / segments[swipeIdx].length;
+                                        snippet.segment = segments[swipeIdx][segmentIdx];
+                                        const dupe = snippets.find(it=>it.swipe == swipeIdx && it.index == segmentIdx);
+                                        if (dupe) {
+                                            dupe.dom.remove();
+                                            snippets.splice(snippets.indexOf(dupe), 1);
+                                            span.classList.remove('stsc--selected');
+                                            return;
+                                        }
+                                        span.classList.add('stsc--selected');
+                                        const before = snippets.findIndex(it=>it.relativeIndex > snippet.relativeIndex);
+                                        const after = snippets.findLastIndex(it=>it.relativeIndex < snippet.relativeIndex);
+                                        const index = Math.max(before, after);
+                                        const outer = document.createElement('div'); {
+                                            snippet.dom = outer;
+                                            outer.classList.add('stsc--snippet');
+                                            outer.classList.add('mes');
+                                            outer.setAttribute('data-stsc--swipe', swipeIdx.toString());
+                                            outer.setAttribute('data-stsc--segment', segmentIdx.toString());
+                                            outer.title = 'Drag to reorder\nRight-click to remove';
+                                            outer.addEventListener('pointerenter', ()=>{
+                                                span.classList.add('stsc--hover');
+                                            });
+                                            outer.addEventListener('pointerleave', ()=>{
+                                                span.classList.remove('stsc--hover');
+                                            });
+                                            outer.addEventListener('contextmenu', (evt)=>{
+                                                evt.preventDefault();
+                                                evt.stopPropagation();
+                                                outer.remove();
+                                                snippets.splice(snippets.findIndex(it=>it.swipe == swipeIdx && it.index == segmentIdx), 1);
+                                                span.classList.remove('stsc--selected');
+                                                span.classList.remove('stsc--hover');
+                                            });
+                                            const inner = document.createElement('div'); {
+                                                inner.classList.add('mes_text');
+                                                const clone = span.cloneNode(true);
+                                                clone.removeAttribute('title');
+                                                if (span.closest('q')) {
+                                                    const q = document.createElement('q'); {
+                                                        q.append(clone);
+                                                        inner.append(q);
+                                                    }
+                                                } else {
+                                                    inner.append(clone);
+                                                }
+                                                outer.append(inner);
+                                            }
+                                        }
+                                        if (index > -1) {
+                                            snippets[index].dom.insertAdjacentElement(index == before ? 'beforebegin' : 'afterend', outer);
+                                        } else {
+                                            keepers.append(outer);
+                                        }
+                                        if (index > -1) {
+                                            snippets.splice(index + (index == after ? 1 : 0), 0, snippet);
+                                        } else {
+                                            snippets.push(snippet);
+                                        }
+                                    });
                                 });
-                            });
+                            }
+                            mesHolder.innerHTML = '';
+                            mesHolder.append(tab.tabContent);
                         });
                         head.append(tab);
                     }
@@ -136,13 +145,9 @@ const showSwipeCombiner = async(mesId) => {
                 swipeTabs.append(head);
             }
             const content = document.createElement('div'); {
+                mesHolder = content;
                 content.classList.add('stsc--content');
                 content.classList.add('mes');
-                const contentInner = document.createElement('div'); {
-                    mesHolder = contentInner;
-                    contentInner.classList.add('mes_text');
-                    content.append(contentInner);
-                }
                 swipeTabs.append(content);
             }
             dom.append(swipeTabs);
@@ -158,7 +163,8 @@ const showSwipeCombiner = async(mesId) => {
             dom.append(keepers);
         }
     }
-    const popupPromise = callPopup(dom, 'confirm', null, { wide:true, large:true, okButton:'OK' });
+    const dlg = new Popup(dom, POPUP_TYPE.CONFIRM, null, { wide:true, large:true, okButton:'Combine', cancelButton:'Abort' });
+    const popupPromise = dlg.show();
     document.querySelector('.stsc--modal .stsc--tab').click();
     const popupResult = await popupPromise;
     console.log(popupResult, snippets);
@@ -171,10 +177,11 @@ const showSwipeCombiner = async(mesId) => {
 
 registerSlashCommand('swipecombiner',
     (args, value)=>{
-        showSwipeCombiner(value ?? chat.length - 1);
+        if ((value?.trim() ?? '').length == 0) value = chat.length - 1;
+        showSwipeCombiner(value);
     },
     [],
-    '',
+    '<span class="monospace">(optional messageId)</span> – Open Swipe Combiner on the last message or the message with the provided ID.',
     true,
     true,
 );

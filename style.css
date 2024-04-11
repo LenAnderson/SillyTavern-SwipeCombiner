@@ -1,4 +1,4 @@
-html > body #dialogue_popup.wide_dialogue_popup.large_dialogue_popup:has(.stsc--modal) {
+html > body .dialogue_popup:has(.stsc--modal) {
   aspect-ratio: unset;
 }
 .stsc--modal {
@@ -42,17 +42,32 @@ html > body #dialogue_popup.wide_dialogue_popup.large_dialogue_popup:has(.stsc--
   flex: 1 1 auto;
   background-color: var(--greyCAIbg);
   overflow: auto;
+  margin: 0;
 }
 .stsc--modal .stsc--swipes > .stsc--content [data-stsc--segment] {
   transition: 200ms;
-}
-.stsc--modal .stsc--swipes > .stsc--content [data-stsc--segment]:hover {
-  background-color: rgba(200 200 200 / 50%);
   cursor: pointer;
+  opacity: 0.8;
+}
+.stsc--modal .stsc--swipes > .stsc--content [data-stsc--segment].stsc--selected {
+  background-color: rgba(200 200 200 / 20%);
+  opacity: 1;
+}
+.stsc--modal .stsc--swipes > .stsc--content [data-stsc--segment]:hover,
+.stsc--modal .stsc--swipes > .stsc--content [data-stsc--segment].stsc--hover {
+  background-color: rgba(200 200 200 / 50%);
 }
 .stsc--modal .stsc--snippets {
   background-color: var(--greyCAIbg);
+  overflow: auto;
 }
 .stsc--modal .stsc--snippets > .stsc--snippet {
   cursor: grab;
+  padding: 0 5px;
+  font-size: small;
+  opacity: 0.75;
+  width: unset;
+}
+.stsc--modal .stsc--snippets > .stsc--snippet:hover {
+  opacity: 1;
 }
