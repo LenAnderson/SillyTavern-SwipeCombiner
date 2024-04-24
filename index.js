@@ -29,6 +29,7 @@ defaultPreset.segmentJoin = '\n';
 class Settings {
     static from(props) {
         props.presetList = props.presetList?.map(it=>Preset.from(it)) ?? [Preset.from(defaultPreset)];
+        if (props.presetList.length == 0) props.presetList = [defaultPreset];
         const instance = Object.assign(new Settings(), props);
         return instance;
     }
@@ -89,6 +90,9 @@ const showSwipeCombiner = async(mesId) => {
                     const tab = document.createElement('div'); {
                         tab.classList.add('stsc--tab');
                         tab.textContent = swipeIdx.toString();
+                        if (mes.swipe_info?.[swipeIdx]?.extra?.isFavorite) {
+                            tab.textContent += '⭐';
+                        }
                         tab.title = `Swipe ${swipeIdx}`;
                         tab.addEventListener('click', ()=>{
                             Array.from(head.querySelectorAll('.stsc--active')).forEach(it=>it.classList.remove('stsc--active'));
@@ -304,7 +308,7 @@ const initSettings = async()=>{
         updatePreview();
     });
 
-    /**@type {HTMLSelectElement} */
+    /**@type {HTMLInputElement} */
     const name = dom.querySelector('#stsc--name');
     name.value = settings.preset.name;
     name.addEventListener('input', () => {
@@ -317,7 +321,7 @@ const initSettings = async()=>{
         settings.save();
     });
 
-    /**@type {HTMLSelectElement} */
+    /**@type {HTMLTextAreaElement} */
     const prompt = dom.querySelector('#stsc--prompt');
     prompt.value = settings.preset.prompt;
     prompt.addEventListener('input', () => {
@@ -326,7 +330,7 @@ const initSettings = async()=>{
         updatePreview();
     });
 
-    /**@type {HTMLSelectElement} */
+    /**@type {HTMLTextAreaElement} */
     const segmentTemplate = dom.querySelector('#stsc--segmentTemplate');
     segmentTemplate.value = settings.preset.segmentTemplate;
     segmentTemplate.addEventListener('input', () => {
@@ -335,7 +339,7 @@ const initSettings = async()=>{
         updatePreview();
     });
 
-    /**@type {HTMLSelectElement} */
+    /**@type {HTMLTextAreaElement} */
     const segmentJoin = dom.querySelector('#stsc--segmentJoin');
     segmentJoin.value = settings.preset.segmentJoin;
     segmentJoin.addEventListener('input', () => {
@@ -344,7 +348,7 @@ const initSettings = async()=>{
         updatePreview();
     });
 
-    /**@type {HTMLSelectElement} */
+    /**@type {HTMLDivElement} */
     const preview = dom.querySelector('#stsc--preview');
     const updatePreview = ()=>{
         preview.textContent = settings.preset.prompt.replace(
