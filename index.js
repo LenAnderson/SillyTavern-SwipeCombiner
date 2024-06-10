@@ -54,6 +54,7 @@ class Settings {
         return instance;
     }
 
+    /**@type {Boolean}*/ zeroBasedIdx = true;
     /**@type {Preset[]}*/ presetList = [Preset.from(defaultPreset)];
     /**@type {String}*/ presetName = 'Default Preset';
     get preset() {
@@ -113,7 +114,7 @@ export const showSwipeCombiner = async(swipes) => {
                     /**@type {HTMLElement & { tabContent?:HTMLElement }} */
                     const tab = document.createElement('div'); {
                         tab.classList.add('stsc--tab');
-                        tab.textContent = swipeIdx.toString();
+                        tab.textContent = settings.zeroBasedIdx ? swipeIdx.toString() : (swipeIdx + 1).toString();
                         if (swipe.isFavorite) {
                             tab.textContent += '⭐';
                         }
@@ -299,6 +300,13 @@ const initSettings = async()=>{
     // @ts-ignore
     const dom = settingsTpl.cloneNode(true);
     document.querySelector('#extensions_settings').append(dom);
+
+    const zeroBasedIdx = dom.querySelector('#stsc--zeroBasedIdx');
+    zeroBasedIdx.checked = settings.zeroBasedIdx;
+    dom.querySelector('#stsc--zeroBasedIdx').addEventListener('change', ()=>{
+        settings.zeroBasedIdx = zeroBasedIdx.checked;
+        settings.save();
+    });
 
     dom.querySelector('#stsc--createPreset').addEventListener('click', ()=>{
         const preset = new Preset();
