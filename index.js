@@ -28,6 +28,7 @@ class Preset {
     /**@type {String}*/ prompt = '{{segments}}';
     /**@type {String}*/ segmentTemplate = '{{segment}}';
     /**@type {String}*/ segmentJoin = '\n';
+    /**@type {String}*/ triggerOnCombine = true;
 
     getRegex() {
         const re = /^\/(?<matcher>.+)\/(?<flags>[^/]*)$/;
@@ -45,6 +46,7 @@ defaultPreset.prompt = `{{segments}}
 Combine the above segments into a cohesive part of the story. Check for logical flow, coherence, and organization when adding text between the sections or around them to seamlessly fit the segments together and coherently integrate the final new text into the existing narrative.`;
 defaultPreset.segmentTemplate = '<segment>{{segment}}</segment>';
 defaultPreset.segmentJoin = '\n';
+defaultPreset.triggerOnCombine = true;
 
 class Settings {
     static from(props) {
@@ -252,7 +254,7 @@ const showSwipeCombinerForMessage = async(mesId) => {
     if (combineMessage) {
         hideChatMessage(mesId, $(document.querySelector(`#chat [mesid="${mesId}"]`)));
         sendNarratorMessage({}, combineMessage);
-        await executeSlashCommands('/trigger');
+        if (settings.preset.triggerOnCombine) await executeSlashCommands('/trigger');
     }
 };
 
@@ -351,6 +353,7 @@ const initSettings = async()=>{
         prompt.value = settings.preset.prompt;
         segmentTemplate.value = settings.preset.segmentTemplate;
         segmentJoin.value = settings.preset.segmentJoin;
+        triggerOnCombine.checked = settings.preset.triggerOnCombine;
         updatePreview();
     });
 
@@ -411,5 +414,12 @@ const initSettings = async()=>{
         );
     };
     updatePreview();
+
+    const triggerOnCombine = dom.querySelector('#stsc--triggerOnCombine');
+    triggerOnCombine.checked = settings.preset.triggerOnCombine;
+    dom.querySelector('#stsc--triggerOnCombine').addEventListener('change', ()=>{
+        settings.preset.triggerOnCombine = triggerOnCombine.checked;
+        settings.save();
+    });
 };
 initSettings();
