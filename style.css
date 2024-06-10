@@ -16,9 +16,10 @@ html > body {
 		display: flex;
 		flex-direction: column;
 		> .stsc--head {
-			flex: 0 0 auto;
 			display: flex;
+			flex: 0 0 auto;
 			flex-direction: row;
+			flex-wrap: wrap;
 			gap: 0.5em;
 			padding: 0 10px;
 			> .stsc--tab {
