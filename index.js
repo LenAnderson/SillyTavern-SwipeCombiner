@@ -1,9 +1,10 @@
-import { chat, messageFormatting, saveSettingsDebounced } from '../../../../script.js';
+import { chat, saveSettingsDebounced } from '../../../../script.js';
 import { hideChatMessage } from '../../../chats.js';
 import { extension_settings, renderExtensionTemplate } from '../../../extensions.js';
 import { POPUP_TYPE, Popup } from '../../../popup.js';
 import { executeSlashCommands, registerSlashCommand, sendNarratorMessage } from '../../../slash-commands.js';
 import { getSortableDelay } from '../../../utils.js';
+import { messageFormattingWithLanding } from './src/messageFormattingWithLanding.js';
 
 
 
@@ -102,7 +103,7 @@ const showSwipeCombiner = async(mesId) => {
                                     tabContent.classList.add('mes_text');
                                 }
                                 tab.tabContent = tabContent;
-                                tabContent.innerHTML = messageFormatting(
+                                tabContent.innerHTML = messageFormattingWithLanding(
                                     segments[swipeIdx].map((it,idx)=>{
                                         const span = document.createElement('span'); {
                                             span.textContent = it;
@@ -111,10 +112,6 @@ const showSwipeCombiner = async(mesId) => {
                                         }
                                         return span.outerHTML;
                                     }).join(''),
-                                    null,
-                                    false,
-                                    false,
-                                    null,
                                 );
                                 Array.from(tabContent.querySelectorAll('[data-stsc--segment]')).forEach((span,segmentIdx)=>{
                                     if (snippets.find(it=>it.swipe == swipeIdx && it.index == segmentIdx)) {
