@@ -15,9 +15,19 @@ class Preset {
     }
 
     /**@type {String}*/ name = 'New Preset';
+    /**@type {String}*/ regex = '';
     /**@type {String}*/ prompt = '{{segments}}';
     /**@type {String}*/ segmentTemplate = '{{segment}}';
     /**@type {String}*/ segmentJoin = '\n';
+
+    getRegex() {
+        const re = /^\/(?<matcher>.+)\/(?<flags>[^/]*)$/;
+        if (re.test(this.regex)) {
+            const { matcher, flags } = re.exec(this.regex).groups;
+            return new RegExp(matcher, flags);
+        }
+        return null;
+    }
 }
 
 const defaultPreset = new Preset();
@@ -76,7 +86,7 @@ const showSwipeCombiner = async(mesId) => {
     const mes = chat[mesId];
     /**@type {String[]} */
     const swipes = mes.swipes ?? [mes.mes];
-    let segments = swipes.map(swipe=>Array.from(segmenter.segment(swipe.replace(/```.*?```/gs,''))).map(it=>it.segment));
+    let segments = swipes.map(swipe=>Array.from(segmenter.segment((settings.preset.regex?.length ? swipe.replace(settings.preset.getRegex(), '') : swipe).replace(/```.*?```/gs,''))).map(it=>it.segment));
     /**@type {Snippet[]} */
     const snippets = [];
     let snippetsDom;
@@ -315,6 +325,14 @@ const initSettings = async()=>{
         presetName.selectedOptions[0].value = name.value;
         presetName.selectedOptions[0].textContent = name.value;
         insertOption(presetName.selectedOptions[0]);
+        settings.save();
+    });
+
+    /**@type {HTMLTextAreaElement} */
+    const regex = dom.querySelector('#stsc--regex');
+    regex.value = settings.preset.regex;
+    regex.addEventListener('input', () => {
+        settings.preset.regex = regex.value;
         settings.save();
     });
 
