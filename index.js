@@ -1,6 +1,6 @@
 import { chat, saveSettingsDebounced } from '../../../../script.js';
 import { hideChatMessage } from '../../../chats.js';
-import { extension_settings, renderExtensionTemplate } from '../../../extensions.js';
+import { extension_settings } from '../../../extensions.js';
 import { POPUP_TYPE, Popup } from '../../../popup.js';
 import { executeSlashCommands, registerSlashCommand, sendNarratorMessage } from '../../../slash-commands.js';
 import { getSortableDelay } from '../../../utils.js';
