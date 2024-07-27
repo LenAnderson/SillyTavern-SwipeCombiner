@@ -19,6 +19,7 @@ html > body {
 			flex: 0 0 auto;
 			display: flex;
 			flex-direction: row;
+			flex-wrap: wrap;
 			gap: 0.5em;
 			padding: 0 10px;
 			> .stsc--tab {
