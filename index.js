@@ -70,7 +70,12 @@ class Snippet {
     /**@type {String}*/ segment;
     /**@type {HTMLElement}*/ dom;
 }
-const showSwipeCombiner = async(mesId) => {
+/**
+ *
+ * @param {{ text:string, isFavorite:boolean }[]} swipes
+ * @returns {Promise<string>}
+ */
+export const showSwipeCombiner = async(swipes) => {
     const onSort = ()=>{
         const els = Array.from(snippetsDom.children);
         for (let idx = els.length - 1; idx >= 0; idx--) {
@@ -83,10 +88,7 @@ const showSwipeCombiner = async(mesId) => {
         }
         console.log('SNIPS', snippets);
     };
-    const mes = chat[mesId];
-    /**@type {String[]} */
-    const swipes = mes.swipes ?? [mes.mes];
-    let segments = swipes.map(swipe=>Array.from(segmenter.segment((settings.preset.regex?.length ? swipe.replace(settings.preset.getRegex(), '') : swipe).replace(/```.*?```/gs,''))).map(it=>it.segment));
+    let segments = swipes.map(swipe=>[...segmenter.segment((settings.preset.regex?.length ? swipe.text.replace(settings.preset.getRegex(), '') : swipe.text).replace(/```.*?```/gs,''))].map(it=>it.segment));
     /**@type {Snippet[]} */
     const snippets = [];
     let snippetsDom;
@@ -98,10 +100,12 @@ const showSwipeCombiner = async(mesId) => {
             const head = document.createElement('div'); {
                 head.classList.add('stsc--head');
                 for (let swipeIdx = 0; swipeIdx < swipes.length; swipeIdx++) {
+                    const swipe = swipes[swipeIdx];
+                    /**@type {HTMLElement & { tabContent?:HTMLElement }} */
                     const tab = document.createElement('div'); {
                         tab.classList.add('stsc--tab');
                         tab.textContent = swipeIdx.toString();
-                        if (mes.swipe_info?.[swipeIdx]?.extra?.isFavorite) {
+                        if (swipe.isFavorite) {
                             tab.textContent += '⭐';
                         }
                         tab.title = `Swipe ${swipeIdx}`;
@@ -226,11 +230,19 @@ const showSwipeCombiner = async(mesId) => {
     const popupResult = await popupPromise;
     console.log(popupResult, snippets);
     if (popupResult && snippets.length > 0) {
-        hideChatMessage(mesId, $(document.querySelector(`#chat [mesid="${mesId}"]`)));
-        sendNarratorMessage({}, settings.preset.prompt.replace(
+        return settings.preset.prompt.replace(
             /{{segments}}/g,
-            snippets.map(it=>settings.preset.segmentTemplate.replace(/{{segment}}/g, it.segment)).join(settings.preset.segmentJoin),
-        ));
+            snippets.map(it=>settings.preset.segmentTemplate.replace(/{{segment}}/g, it.segment.trim())).join(settings.preset.segmentJoin),
+        );
+    }
+};
+const showSwipeCombinerForMessage = async(mesId) => {
+    const mes = chat[mesId];
+    const swipes = mes.swipes.map((it,idx)=>({ text:it, isFavorite:mes.swipe_info?.at(idx)?.extra?.isFavorite })) ?? [{ text:mes.mes, isFavorite:mes.extra?.isFavorite }];
+    const combineMessage = await showSwipeCombiner(swipes);
+    if (combineMessage) {
+        hideChatMessage(mesId, $(document.querySelector(`#chat [mesid="${mesId}"]`)));
+        sendNarratorMessage({}, combineMessage);
         await executeSlashCommands('/trigger');
     }
 };
@@ -238,7 +250,7 @@ const showSwipeCombiner = async(mesId) => {
 registerSlashCommand('swipecombiner',
     (args, value)=>{
         if ((value?.trim() ?? '').length == 0) value = chat.length - 1;
-        showSwipeCombiner(value);
+        showSwipeCombinerForMessage(value);
     },
     [],
     '<span class="monospace">(optional messageId)</span> – Open Swipe Combiner on the last message or the message with the provided ID.',
