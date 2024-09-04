@@ -3,6 +3,10 @@ import { hideChatMessage } from '../../../chats.js';
 import { extension_settings } from '../../../extensions.js';
 import { POPUP_TYPE, Popup } from '../../../popup.js';
 import { executeSlashCommands, registerSlashCommand, sendNarratorMessage } from '../../../slash-commands.js';
+import { SlashCommand } from '../../../slash-commands/SlashCommand.js';
+import { SlashCommandArgument } from '../../../slash-commands/SlashCommandArgument.js';
+import { SlashCommandEnumValue } from '../../../slash-commands/SlashCommandEnumValue.js';
+import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.js';
 import { getSortableDelay } from '../../../utils.js';
 import { messageFormattingWithLanding } from './src/messageFormattingWithLanding.js';
 
@@ -10,6 +14,11 @@ import { messageFormattingWithLanding } from './src/messageFormattingWithLanding
 
 
 class Preset {
+    /**
+     *
+     * @param {*} props
+     * @returns {Preset}
+     */
     static from(props) {
         return Object.assign(new Preset(), props);
     }
@@ -257,6 +266,24 @@ registerSlashCommand('swipecombiner',
     true,
     true,
 );
+
+SlashCommandParser.addCommandObject(SlashCommand.fromProps({ name: 'swipecombiner-preset',
+    callback: (args, value)=>{
+        if (value.toString().length) {
+            const presetName = /**@type {HTMLSelectElement}*/(document.querySelector('#stsc--presetName'));
+            presetName.value = value.toString();
+            presetName.dispatchEvent(new Event('change', { bubbles:true }));
+        }
+        return settings.preset.name;
+    },
+    unnamedArgumentList: [
+        SlashCommandArgument.fromProps({ description: 'preset name',
+            enumProvider: ()=>settings.presetList.map(it=>new SlashCommandEnumValue(it.name, it.prompt)),
+        }),
+    ],
+    returns: 'Current preset name',
+    helpString: 'Gets or sets the Swipe Combiner preset. Call without argument to just return the current preset name.',
+}));
 
 
 
