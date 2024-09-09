@@ -28,7 +28,7 @@ class Preset {
     /**@type {String}*/ prompt = '{{segments}}';
     /**@type {String}*/ segmentTemplate = '{{segment}}';
     /**@type {String}*/ segmentJoin = '\n';
-    /**@type {String}*/ triggerOnCombine = true;
+    /**@type {Boolean}*/ triggerOnCombine = true;
 
     getRegex() {
         const re = /^\/(?<matcher>.+)\/(?<flags>[^/]*)$/;
