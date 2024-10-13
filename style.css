@@ -1,16 +1,19 @@
 html > body {
 	.dialogue_popup:has(.stsc--modal),
 	.popup:has(.stsc--modal) {
-		aspect-ratio: unset;
+		min-width: 98vw;
+		min-height: 96vh;
+		outline: none;
 	}
 }
 .stsc--modal {
-    display: flex;
-    flex-direction: row;
-    gap: 1em;
-    height: 100%;
+	display: flex;
+	flex-direction: row;
+	gap: 1em;
+	height: 100%;
 	text-align: left;
-	> .stsc--swipes, > .stsc--snippets {
+	> .stsc--swipes,
+	> .stsc--snippets {
 		flex: 1 1 0;
 	}
 	.stsc--swipes {
@@ -44,7 +47,6 @@ html > body {
 			background-color: hsl(from var(--SmartThemeBlurTintColor) h s calc(l - 0.05));
 			overflow: auto;
 			margin: 0;
-
 			[data-stsc--segment] {
 				transition: 200ms;
 				cursor: pointer;
@@ -53,7 +55,8 @@ html > body {
 					background-color: rgba(200 200 200 / 20%);
 					opacity: 1;
 				}
-				&:hover, &.stsc--hover {
+				&:hover,
+				&.stsc--hover {
 					background-color: rgba(200 200 200 / 50%);
 				}
 			}
@@ -74,15 +77,11 @@ html > body {
 		}
 	}
 }
-
-
-
-
 #stsc--settings {
-  label {
-    flex: 1 1 auto;
-  }
-  #stsc--preview {
-    white-space: pre-wrap;
-  }
+	label {
+		flex: 1 1 auto;
+	}
+	#stsc--preview {
+		white-space: pre-wrap;
+	}
 }
