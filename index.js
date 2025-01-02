@@ -247,7 +247,7 @@ export const showSwipeCombiner = async(swipes) => {
 };
 const showSwipeCombinerForMessage = async(mesId) => {
     const mes = chat[mesId];
-    const swipes = mes.swipes.map((it,idx)=>({ text:it, isFavorite:mes.swipe_info?.at(idx)?.extra?.isFavorite })) ?? [{ text:mes.mes, isFavorite:mes.extra?.isFavorite }];
+    const swipes = mes.swipes.map((it,idx)=>({ text:it, isFavorite:mes.swipe_info?.at(idx)?.isFavorite })) ?? [{ text:mes.mes, isFavorite:mes.isFavorite }];
     const combineMessage = await showSwipeCombiner(swipes);
     if (combineMessage) {
         hideChatMessage(mesId, $(document.querySelector(`#chat [mesid="${mesId}"]`)));
