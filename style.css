@@ -86,4 +86,7 @@ html > body {
   #stsc--preview {
     white-space: pre-wrap;
   }
+  .inline-drawer > .inline-drawer-content > * {
+    margin-bottom: 1em;
+  }
 }
