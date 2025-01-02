@@ -2,6 +2,7 @@ html > body {
 	.dialogue_popup:has(.stsc--modal),
 	.popup:has(.stsc--modal) {
 		aspect-ratio: unset;
+        width: unset;
 	}
 }
 .stsc--modal {
